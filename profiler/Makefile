@@ -79,9 +79,9 @@ $(OUTPUT)/%.skel.h: $(OUTPUT)/%.bpf.o | $(OUTPUT)
 # Build user-space code
 $(patsubst %,$(OUTPUT)/%.o,$(APPS)): %.o: %.skel.h
 
-$(OUTPUT)/%.o: %.c $(wildcard %.h) | $(OUTPUT)
+$(OUTPUT)/%.o: %.cpp $(wildcard %.h) | $(OUTPUT)
 	$(call msg,CC,$@)
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
+	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.cpp,$^) -o $@
 
 trace_helpers.o: $(HELPERS)/trace_helpers.c
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
@@ -89,11 +89,14 @@ trace_helpers.o: $(HELPERS)/trace_helpers.c
 uprobe_helpers.o: $(HELPERS)/uprobe_helpers.c
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
 
-lua_stacks_helper.o: lua_stacks_helper.cpp profile.h lua_stacks_helper.h
+lua_stacks_map.o: lua_stacks_map.cpp profile.h lua_stacks_map.h
+	$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.cpp,$^) -o $@
+
+stack_printer.o: stack_printer.cpp profile.h stack_printer.h
 	$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.cpp,$^) -o $@
 
 # Build application binary
-$(APPS): %: $(OUTPUT)/%.o uprobe_helpers.o trace_helpers.o lua_stacks_helper.o $(LIBBPF_OBJ) | $(OUTPUT)
+$(APPS): %: $(OUTPUT)/%.o uprobe_helpers.o trace_helpers.o lua_stacks_map.o stack_printer.o $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CXX) $(CFLAGS) $^ -lelf -lz -o $@
 
