@@ -1,0 +1,3 @@
+profiler/.output/*
+profiler/*.o
+profiler/profile
