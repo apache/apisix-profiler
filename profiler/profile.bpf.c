@@ -10,6 +10,7 @@ const volatile bool disable_lua_user_trace = false;
 const volatile bool include_idle = false;
 const volatile pid_t targ_pid = -1;
 const volatile pid_t targ_tid = -1;
+const volatile int frame_depth = 15;
 
 struct
 {
@@ -127,7 +128,7 @@ static int fix_lua_stack(struct bpf_perf_event_data *ctx, __u32 tid, int stack_i
 	frame = nextframe = BPF_PROBE_READ_USER(L, base) - 1;
 	/* Traverse frames backwards. */
 	// for the ebpf verifier insns (limit 1000000), we need to limit the max loop times to 13
-	for (; i < 15 && frame > bot; i++)
+	for (; i < frame_depth && frame > bot; i++)
 	{
 		if (frame_gc(frame) == obj2gco(L))
 		{

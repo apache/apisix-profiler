@@ -60,6 +60,7 @@ struct profile_env
 	bool include_idle;
 	bool folded;
 	int cpu;
+	int frame_depth;
 };
 
 #endif /* __PROFILE_H */

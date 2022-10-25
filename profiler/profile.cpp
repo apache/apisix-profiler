@@ -43,6 +43,7 @@ struct profile_env env = {
 	.freq = 1,
 	.sample_freq = 49,
 	.cpu = -1,
+	.frame_depth = 15
 };
 
 #define UPROBE_SIZE 3
@@ -91,6 +92,7 @@ static const struct argp_option opts[] = {
 	{"cpu", 'C', "CPU", 0, "cpu number to run profile on"},
 	{"perf-max-stack-depth", OPT_PERF_MAX_STACK_DEPTH,
 	 "PERF-MAX-STACK-DEPTH", 0, "the limit for both kernel and user stack traces (default 127)"},
+	{"max-frame-depth", 'D', "DEPTH", 0, "max frame depth for eBPF to travel in the stack (default 15)"},
 	{"verbose", 'v', NULL, 0, "Verbose debug output"},
 	{NULL, 'h', NULL, OPTION_HIDDEN, "Show the full help"},
 	{},
@@ -136,6 +138,15 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 		errno = 0;
 		env.sample_freq = strtol(arg, NULL, 10);
 		if (errno || env.sample_freq <= 0)
+		{
+			fprintf(stderr, "invalid FREQUENCY: %s\n", arg);
+			argp_usage(state);
+		}
+		break;
+	case 'D':
+		errno = 0;
+		env.frame_depth = strtol(arg, NULL, 10);
+		if (errno || env.frame_depth <= 0)
 		{
 			fprintf(stderr, "invalid FREQUENCY: %s\n", arg);
 			argp_usage(state);
@@ -299,7 +310,7 @@ static int attach_lua_uprobes(struct profile_bpf *obj, struct bpf_link *links[])
 		res = get_pid_lib_path(env.pid, "luajit-5.1.so", lua_path, sizeof(lua_path));
 		if (res < 0)
 		{
-			fprintf(stderr, "failed to get lib path for pid %d\n", env.pid);
+			fprintf(stderr, "warning: failed to get lib path for pid %d\n", env.pid);
 			return -1;
 		}
 	}
@@ -381,6 +392,7 @@ int main(int argc, char **argv)
 	obj->rodata->user_stacks_only = env.user_stacks_only;
 	obj->rodata->kernel_stacks_only = env.kernel_stacks_only;
 	obj->rodata->include_idle = env.include_idle;
+	obj->rodata->frame_depth = env.frame_depth;
 
 	bpf_map__set_value_size(obj->maps.stackmap,
 							env.perf_max_stack_depth * sizeof(unsigned long));
@@ -390,6 +402,7 @@ int main(int argc, char **argv)
 	if (err)
 	{
 		fprintf(stderr, "failed to load BPF programs\n");
+		fprintf(stderr, "try decrease the max frame depth with -D and rerun with sudo?\n");
 		goto cleanup;
 	}
 	ksyms = ksyms__load();
