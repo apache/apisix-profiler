@@ -21,7 +21,7 @@ extern "C"
 #define warn(...) fprintf(stderr, __VA_ARGS__)
 
 extern struct profile_env env;
-extern struct lua_stack_map lua_bt_map;
+extern class lua_stack_map lua_bt_map;
 
 /* This structure combines key_t and count which should be sorted together */
 struct key_ext_t

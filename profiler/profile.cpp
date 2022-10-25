@@ -30,7 +30,7 @@ extern "C"
 }
 
 bool exiting = false;
-struct lua_stack_map lua_bt_map;
+class lua_stack_map lua_bt_map;
 
 #define warn(...) fprintf(stderr, __VA_ARGS__)
 
@@ -261,12 +261,8 @@ static void sig_handler(int sig)
 
 static void handle_lua_stack_event(void *ctx, int cpu, void *data, __u32 data_sz)
 {
-	int err;
 	const struct lua_stack_event *e = static_cast<const struct lua_stack_event *>(data);
-
-	err = lua_bt_map.insert_lua_stack_map(e);
-	if (err)
-		fprintf(stderr, "failed to insert lua stack map\n");
+	lua_bt_map.insert_lua_stack_map(e);
 }
 
 static void handle_lua_stack_lost_events(void *ctx, int cpu, __u64 lost_cnt)

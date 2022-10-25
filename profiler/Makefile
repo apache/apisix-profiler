@@ -13,7 +13,7 @@ HELPERS := $(abspath ../helpers)
 # libbpf to avoid dependency on system-wide headers, which could be missing or
 # outdated
 INCLUDES := -I$(OUTPUT) -I../libbpf/include/uapi -I$(dir $(VMLINUX)) -I$(HELPERS)
-CFLAGS := -g -Wall -fsanitize=address
+CFLAGS := -g -Wall # -fsanitize=address
 
 APPS = profile
 
@@ -45,7 +45,7 @@ all: $(APPS)
 
 $(VMLINUX):
 	$(Q)wget https://github.com/yunwei37/apisix-profiler/releases/download/vmlinux/vmlinux.tar
-	$(Q)tar -xvf vmlinux.tar ../
+	$(Q)cd ../ && tar -xvf profiler/vmlinux.tar 
 	$(Q)rm vmlinux.tar
 
 .PHONY: clean
@@ -81,7 +81,7 @@ $(patsubst %,$(OUTPUT)/%.o,$(APPS)): %.o: %.skel.h
 
 $(OUTPUT)/%.o: %.cpp $(wildcard %.h) | $(OUTPUT)
 	$(call msg,CC,$@)
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.cpp,$^) -o $@
+	$(Q)$(CXX) $(CFLAGS) $(INCLUDES) -c $(filter %.cpp,$^) -o $@
 
 trace_helpers.o: $(HELPERS)/trace_helpers.c
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
@@ -90,10 +90,10 @@ uprobe_helpers.o: $(HELPERS)/uprobe_helpers.c
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
 
 lua_stacks_map.o: lua_stacks_map.cpp profile.h lua_stacks_map.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.cpp,$^) -o $@
+	$(CXX) $(CFLAGS) $(INCLUDES) -c $(filter %.cpp,$^) -o $@
 
 stack_printer.o: stack_printer.cpp profile.h stack_printer.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.cpp,$^) -o $@
+	$(CXX) $(CFLAGS) $(INCLUDES) -c $(filter %.cpp,$^) -o $@
 
 # Build application binary
 $(APPS): %: $(OUTPUT)/%.o uprobe_helpers.o trace_helpers.o lua_stacks_map.o stack_printer.o $(LIBBPF_OBJ) | $(OUTPUT)
