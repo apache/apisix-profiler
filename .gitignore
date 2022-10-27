@@ -1,3 +1,6 @@
 profiler/.output/*
 profiler/*.o
 profiler/profile
+tools/
+vmlinux/
+profiler/vmlinux.tar
