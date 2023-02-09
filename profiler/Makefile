@@ -12,7 +12,7 @@ HELPERS := $(abspath ../helpers)
 # Use our own libbpf API headers and Linux UAPI headers distributed with
 # libbpf to avoid dependency on system-wide headers, which could be missing or
 # outdated
-INCLUDES := -I$(OUTPUT) -I../libbpf/include/uapi -I$(dir $(VMLINUX)) -I$(HELPERS)
+INCLUDES := -I$(OUTPUT) -I../libbpf/include/uapi -I../vmlinux/x86 -I$(HELPERS)
 CFLAGS := -g -Wall # -fsanitize=address
 
 APPS = profile
@@ -45,7 +45,7 @@ all: $(APPS)
 
 $(VMLINUX):
 	$(Q)wget https://github.com/yunwei37/apisix-profiler/releases/download/vmlinux/vmlinux.tar
-	$(Q)tar -xvf vmlinux.tar ../
+	$(Q)tar -xvf vmlinux.tar -C ../
 	$(Q)rm vmlinux.tar
 
 .PHONY: clean

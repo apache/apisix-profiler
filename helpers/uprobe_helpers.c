@@ -17,6 +17,8 @@
 
 #define warn(...) fprintf(stderr, __VA_ARGS__)
 
+static pid_t global_pid; // HACK
+
 /*
  * Returns 0 on success; -1 on failure.  On sucess, returns via `path` the full
  * path to the program for pid.
@@ -57,6 +59,7 @@ int get_pid_lib_path(pid_t pid, const char *lib, char *path, size_t path_sz)
 	char proc_pid_maps[32];
 	char line_buf[1024];
 
+	global_pid = pid; // HACK
 	if (snprintf(proc_pid_maps, sizeof(proc_pid_maps), "/proc/%d/maps", pid)
 	    >= sizeof(proc_pid_maps)) {
 		warn("snprintf /proc/PID/maps failed");
@@ -67,6 +70,7 @@ int get_pid_lib_path(pid_t pid, const char *lib, char *path, size_t path_sz)
 		warn("No such pid %d\n", pid);
 		return -1;
 	}
+	
 	while (fgets(line_buf, sizeof(line_buf), maps)) {
 		if (sscanf(line_buf, "%*x-%*x %*s %*x %*s %*u %s", path) != 1)
 			continue;
@@ -85,6 +89,10 @@ int get_pid_lib_path(pid_t pid, const char *lib, char *path, size_t path_sz)
 			continue;
 
 		fclose(maps);
+		char *tmp = strdup(path);
+		sprintf(path, "/proc/%d/root", pid);
+		strcat(path, tmp);
+		free(tmp);
 		return 0;
 	}
 
@@ -166,13 +174,22 @@ Elf *open_elf(const char *path, int *fd_close)
 	int fd;
 	Elf *e;
 
+	char pathbuf[256];
+	sprintf(pathbuf, "/proc/%d/root", global_pid);
+
+	if (strncmp(path, pathbuf, strlen(pathbuf)) != 0 ){
+		strcat(pathbuf, path);
+	} else {
+		strcpy(pathbuf, path);
+	}
+
 	if (elf_version(EV_CURRENT) == EV_NONE) {
 		warn("elf init failed\n");
 		return NULL;
 	}
-	fd = open(path, O_RDONLY);
+	fd = open(pathbuf, O_RDONLY);
 	if (fd < 0) {
-		warn("Could not open %s\n", path);
+		warn("Could not open %s\n", pathbuf);
 		return NULL;
 	}
 	e = elf_begin(fd, ELF_C_READ, NULL);
@@ -235,7 +252,17 @@ off_t get_elf_func_offset(const char *path, const char *func)
 	size_t shstrndx, nhdrs;
 	char *n;
 
-	e = open_elf(path, &fd);
+	char pathbuf[256];
+	sprintf(pathbuf, "/proc/%d/root", global_pid);
+
+	if (strncmp(path, pathbuf, strlen(pathbuf)) != 0 ){
+		strcat(pathbuf, path);
+	} else {
+		strcpy(pathbuf, path);
+	}
+
+	printf("OPENING %s\n", pathbuf);
+	e = open_elf(pathbuf, &fd);
 
 	if (!gelf_getehdr(e, &ehdr))
 		goto out;
