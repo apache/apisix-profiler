@@ -52,11 +52,20 @@ static bool read_batch_counts_map(int fd, struct key_ext_t *items, __u32 *count)
     __u32 vals[*count];
     struct stack_key keys[*count];
 
+    //BPF_F_LOCK 
+    const struct bpf_map_batch_opts batch_opts = {
+        .sz = sizeof(struct stack_key),  
+        .elem_flags = BPF_F_LOCK,     
+    };
+
+
     while (n_read < *count && !err)
     {
         n = *count - n_read;
-        err = bpf_map_lookup_batch(fd, &in, &out, keys + n_read,
-                                   vals + n_read, &n, NULL);
+        err = bpf_map_lookup_batch(fd, &in, &out, 
+                                   keys + n_read * sizeof(stack_key),
+                                   vals + n_read, 
+                                   &n, &batch_opts);
         if (err && errno != ENOENT)
         {
             /* we want to propagate EINVAL upper, so that
@@ -90,7 +99,6 @@ static bool read_counts_map(int fd, struct key_ext_t *items, __u32 *count)
     struct stack_key *lookup_key = &empty;
     int i = 0;
     int err;
-
     if (batch_map_ops)
     {
         bool ok = read_batch_counts_map(fd, items, count);
@@ -324,7 +332,7 @@ void print_stack_trace(struct ksyms *ksyms, struct syms_cache *syms_cache,
 
                 if (stack_id_err(k->kern_stack_id))
                     printf(";[Missed Kernel Stack]");
-                for (std::size_t j = nr_kip - 1; j >= 0; j--)
+                for (int j = nr_kip - 1; j >= 0; j--)
                 {
                     ksym = ksyms__map_addr(ksyms, kip[j]);
                     printf(";%s", ksym ? ksym->name : "[unknown]");
